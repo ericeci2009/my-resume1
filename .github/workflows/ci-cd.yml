@@ -5,7 +5,10 @@
       branches: [main]
     pull_request:
       branches: [main]
-  
+
+  permissions:
+    id-token: write
+    contents: read
   env:
     AWS_REGION: us-east-1
     AWS_ROLE: ${{ secrets.AWS_ACTION_ROLE }}
@@ -16,7 +19,7 @@
       runs-on: ubuntu-latest #github runner
       steps:
         - name: clone repo
-          uses: actions/checkout@
+          uses: actions/checkout@v3
         - name: Aws creds config
           uses: aws-actions/config-aws-credentials@v4
           with:
