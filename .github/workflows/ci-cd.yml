@@ -72,12 +72,12 @@ jobs:
         run: |
           IMAGE_URI="${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPO_NAME}}:${{ env.IMAGE_TAG }}"
           echo "image-uri=$IMAGE_URI" >> $GITHUB_OUTPUT
-      - name: Post Fix Suggestions on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            // Use require() to import Node.js modules
+      -   name: Post Fix Suggestions on PR
+          if: github.event_name == 'pull_request'
+          uses: action/github-script@v6
+          with:
+            script: |
+              //Use require() to import Node.js modules
             const fs = require('fs');
             
             try {
@@ -92,8 +92,23 @@ jobs:
                 **Advisory:** ${v.PrimaryURL || 'N/A'}
               `).join('\n');
 
+              const fsVulns = fsReport.Results?.flatMap(r => r.Vulnerabilities || []);
+              const imageVulns = imageReport.Results?.flatMap(r => r.Vulnerabilities || []);
 
+              let comment = '## 🔍 Trivy Security Report\n';
+              if (fsVulns.length > 0) comment += `### 📂 Filesystem Vulnerabilities\n${formatVulns(fsVulns)}\n`;
+              if (imageVulns.length > 0) comment += `### 🐳 Docker Image Vulnerabilities\n${formatVulns(imageVulns)}\n`;
+              if (fsVulns.length + imageVulns.length === 0) comment += '✅ No critical/high vulnerabilities found.';
 
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (error) {
+              core.error('Failed to process Trivy results: ' + error.message);
+            }
       - name: Post Fix Suggestions on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
